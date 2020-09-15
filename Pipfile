@@ -5,6 +5,8 @@ verify_ssl = true
 
 [dev-packages]
 jupyterlab = "*"
+bandit = "*"
+black = "*"
 
 [packages]
 numpy = "*"
