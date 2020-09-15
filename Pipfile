@@ -15,6 +15,7 @@ torch = "*"
 torchvision = "*"
 matplotlib = "*"
 nbdime = "*"
+azureml-sdk = {extras = ["automl", "notebooks"],version = "*"}
 
 [requires]
 python_version = "3.7"

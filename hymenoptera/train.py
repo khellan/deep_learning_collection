@@ -6,14 +6,13 @@ from torch.optim import lr_scheduler
 import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
-import matplotlib.pyplot as plt
 import time
 import os
 import copy
 
 
 def train_model(
-    model, dataloaders, dataset_sizes, criterion, optimizer, scheduler, num_epochs
+    model, dataloaders, dataset_sizes, criterion, optimizer, scheduler, num_epochs, run
 ):
     since = time.time()
 
@@ -64,7 +63,9 @@ def train_model(
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
             print("{} Loss: {:.4f} Acc: {:.4f}".format(phase, epoch_loss, epoch_acc))
-
+            if run:
+                run.log(f"{phase} Accuracy", np.float(epoch_acc))
+                run.log(f"{phase} Loss", np.float(epoch_loss))
             # deep copy the model
             if phase == "val" and epoch_acc > best_acc:
                 best_acc = epoch_acc
@@ -82,7 +83,7 @@ def train_model(
 
     # load best model weights
     model.load_state_dict(best_model_wts)
-    return model
+    return model, best_acc
 
 
 def imshow(inp, title=None):
@@ -99,6 +100,8 @@ def imshow(inp, title=None):
 
 
 def visualize_model(model, dataloaders, class_names, num_images=6):
+    import matplotlib.pyplot as plt
+
     was_training = model.training
     model.eval()
     images_so_far = 0
@@ -126,6 +129,8 @@ def visualize_model(model, dataloaders, class_names, num_images=6):
 
 
 def show_examples(dataloaders, class_names):
+    import matplotlib.pyplot as plt
+
     # Get a batch of training data
     inputs, classes = next(iter(dataloaders["train"]))
 
@@ -136,8 +141,9 @@ def show_examples(dataloaders, class_names):
     input("Press Enter to continue...")
 
 
-def fine_tune_train(device, num_epochs, dataloaders, dataset_sizes, num_classes):
-    model_ft = models.resnet18(pretrained=True)
+def fine_tune_train(
+    model_ft, device, num_epochs, dataloaders, dataset_sizes, num_classes, run
+):
     num_ftrs = model_ft.fc.in_features
 
     model_ft.fc = nn.Linear(num_ftrs, num_classes)
@@ -151,7 +157,7 @@ def fine_tune_train(device, num_epochs, dataloaders, dataset_sizes, num_classes)
 
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
-    model_ft = train_model(
+    model_ft, best_accuracy = train_model(
         model_ft,
         dataloaders,
         dataset_sizes,
@@ -159,18 +165,22 @@ def fine_tune_train(device, num_epochs, dataloaders, dataset_sizes, num_classes)
         optimizer_ft,
         exp_lr_scheduler,
         num_epochs=num_epochs,
+        run=run,
     )
-    return model_ft
+    return model_ft, best_accuracy
 
 
-def final_layer_train(device, num_epochs, dataloaders, dataset_sizes, num_classes):
-    model_conv = torchvision.models.resnet18(pretrained=True)
+def final_layer_train(
+    model_conv, device, num_epochs, dataloaders, dataset_sizes, num_classes, run
+):
     for param in model_conv.parameters():
         param.requires_grad = False
 
     # Parameters of newly constructed modules have requires_grad=True by default
     num_ftrs = model_conv.fc.in_features
     model_conv.fc = nn.Linear(num_ftrs, num_classes)
+    # num_features = model_conv.classifier[1].in_features
+    # model_conv.classifier[1] = nn.Linear(num_features, num_classes)
 
     model_conv = model_conv.to(device)
 
@@ -179,11 +189,12 @@ def final_layer_train(device, num_epochs, dataloaders, dataset_sizes, num_classe
     # Observe that only parameters of final layer are being optimized as
     # opposed to before.
     optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
+    # optimizer_conv = optim.SGD(model_conv.classifier[1].parameters(), lr=0.001, momentum=0.9)
 
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
 
-    model_conv = train_model(
+    model_conv, best_accuracy = train_model(
         model_conv,
         dataloaders,
         dataset_sizes,
@@ -191,8 +202,9 @@ def final_layer_train(device, num_epochs, dataloaders, dataset_sizes, num_classe
         optimizer_conv,
         exp_lr_scheduler,
         num_epochs=num_epochs,
+        run=run,
     )
-    return model_conv
+    return model_conv, best_accuracy
 
 
 def get_data_transforms():
@@ -241,6 +253,10 @@ def save_model(modle, model_dir):
     torch.save(model.cpu().state_dict(), path)
 
 
+def is_azure(args):
+    return args.environment == "azure"
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -249,36 +265,70 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", type=float, default=0.1)
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--step-size", type=int, default=7)
-    parser.add_argument("--model-dir", type=str, default=os.environ["SM_MODEL_DIR"])
-    parser.add_argument(
-        "--data-dir", type=str, default=os.environ["SM_CHANNEL_TRAINING"]
-    )
+    parser.add_argument("--model-dir", type=str, default=None)
+    parser.add_argument("--data-dir", type=str, default=None)
     parser.add_argument(
         "--action",
         type=str,
-        const="show_examples",
-        default="show_examples",
+        const="eval",
+        default="eval",
         nargs="?",
-        choices=["final_layer", "fine_tune", "show_examples"],
+        choices=["final_layer", "fine_tune", "show_examples", "eval"],
     )
-
+    parser.add_argument("--environment", type=str, default="aws")
     args = parser.parse_args()
+
+    if not args.model_dir and "SM_MODEL_DIR" in os.environ:
+        args.model_dir = os.environ["SM_MODEL_DIR"]
+    if not args.data_dir and "SM_CHANNEL_TRAINING" in os.environ:
+        args.data_dir = os.environ["SM_CHANNEL_TRAINING"]
+
+    run = None  # Used in Azure only
+    if is_azure(args):
+        from azureml.core import Run
+
+        run = Run.get_context()
+
+    pretrained_model = models.resnet18(pretrained=True)
     dataloaders, dataset_sizes, class_names = load_datasets(args.data_dir)
+    [print(f"Dataset {x} has {dataset_sizes[x]} images.") for x in dataset_sizes]
+    [print(f"Class {x}.") for x in class_names]
+
     print(f"Action argument: {args.action}")
-    if args.action == "fine_tune":
+    if args.action == "eval":
+        print(pretrained_model.eval())
+    elif args.action == "fine_tune":
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        model = fine_tune_train(
-            device, args.epochs, dataloaders, dataset_sizes, len(class_names)
+        model, best_accuracy = fine_tune_train(
+            pretrained_model,
+            device,
+            args.epochs,
+            dataloaders,
+            dataset_sizes,
+            len(class_names),
+            run,
         )
+        if is_azure(args):
+            run.log("Accuracy", np.float(best_accuracy))
         save_model(model, args.model_dir)
     elif args.action == "final_layer":
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        model = final_layer_train(
-            device, args.epochs, dataloaders, dataset_sizes, len(class_names)
+        model, best_accuracy = final_layer_train(
+            pretrained_model,
+            device,
+            args.epochs,
+            dataloaders,
+            dataset_sizes,
+            len(class_names),
+            run,
         )
+        if is_azure(args):
+            run.log("Best Accuracy", np.float(best_accuracy))
         save_model(model, args.model_dir)
     elif args.action == "show_examples":
         show_examples(dataloaders, class_names)
     else:
         print(f"Unknown argument {args.action}")
         exit(-1)
+    if is_azure(args):
+        run.complete()
