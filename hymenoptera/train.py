@@ -204,7 +204,7 @@ def save_model(modle, model_dir):
 
 def model_fn(model_dir):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = models.wide_resnet50_2()
+    model = models.resnet18()
     model = replace_final_layer(model, 2)
     with open(os.path.join(model_dir, 'model.pth'), 'rb') as f:
         model.load_state_dict(torch.load(f))
@@ -249,7 +249,7 @@ if __name__ == "__main__":
         args.data_dir = os.environ["SM_CHANNEL_TRAINING"]
 
     run = None  # Used in Azure only
-    if is_azure(args):
+    if args.environment == 'azure':
         from azureml.core import Run
 
         run = Run.get_context()
