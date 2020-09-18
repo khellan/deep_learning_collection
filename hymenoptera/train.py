@@ -97,9 +97,7 @@ def replace_final_layer(model, num_classes):
 def fine_tune_train(
     model_ft, device, num_epochs, dataloaders, dataset_sizes, num_classes, run
 ):
-    num_ftrs = model_ft.fc.in_features
-
-    model_ft.fc = nn.Linear(num_ftrs, num_classes)
+    model_ft = replace_final_layer(model_ft, num_classes)
 
     model_ft = model_ft.to(device)
 
@@ -130,10 +128,7 @@ def final_layer_train(
         param.requires_grad = False
 
     # Parameters of newly constructed modules have requires_grad=True by default
-    num_ftrs = model_conv.fc.in_features
-    model_conv.fc = nn.Linear(num_ftrs, num_classes)
-    # num_features = model_conv.classifier[1].in_features
-    # model_conv.classifier[1] = nn.Linear(num_features, num_classes)
+    model_conv = replace_final_layer(model_conv, num_classes)
 
     model_conv = model_conv.to(device)
 
@@ -261,7 +256,7 @@ if __name__ == "__main__":
             len(class_names),
             run,
         )
-        if is_azure(args):
+        if run:
             run.log("Accuracy", np.float(best_accuracy))
         save_model(model, args.model_dir)
     elif args.action == "final_layer":
@@ -275,11 +270,11 @@ if __name__ == "__main__":
             len(class_names),
             run,
         )
-        if is_azure(args):
+        if run:
             run.log("Best Accuracy", np.float(best_accuracy))
         save_model(model, args.model_dir)
     else:
         print(f"Unknown argument {args.action}")
         exit(-1)
-    if is_azure(args):
+    if run:
         run.complete()
