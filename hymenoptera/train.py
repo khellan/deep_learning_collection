@@ -6,6 +6,8 @@ from torch.optim import lr_scheduler
 import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
+import io
+from PIL import Image
 import time
 import os
 import copy
@@ -91,7 +93,7 @@ def replace_final_layer(model, num_classes):
     model.fc = nn.Linear(num_features, num_classes)
     return model
 
-
+ 
 
 
 def fine_tune_train(
@@ -137,7 +139,6 @@ def final_layer_train(
     # Observe that only parameters of final layer are being optimized as
     # opposed to before.
     optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
-    # optimizer_conv = optim.SGD(model_conv.classifier[1].parameters(), lr=0.001, momentum=0.9)
 
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
@@ -201,8 +202,24 @@ def save_model(modle, model_dir):
     torch.save(model.cpu().state_dict(), path)
 
 
-def is_azure(args):
-    return args.environment == "azure"
+def model_fn(model_dir):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = models.wide_resnet50_2()
+    model = replace_final_layer(model, 2)
+    with open(os.path.join(model_dir, 'model.pth'), 'rb') as f:
+        model.load_state_dict(torch.load(f))
+    return model.to(device)
+
+
+def input_fn(request_body, content_type):
+    if content_type != 'application/x-image':
+        raise Eexception(f'Unknown content type {content_type}')
+    print(request_body[:100])
+    image_array = np.array(Image.open(io.BytesIO(request_body)))
+    image = Image.fromarray(image_array.astype('uint8'), 'RGB')
+    transform = get_data_transforms()['val']
+    transformed_image = transform(image)
+    return torch.unsqueeze(transformed_image, 0)
 
 
 if __name__ == "__main__":
