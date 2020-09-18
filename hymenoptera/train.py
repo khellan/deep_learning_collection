@@ -6,8 +6,6 @@ from torch.optim import lr_scheduler
 import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
-import io
-from PIL import Image
 import time
 import os
 import copy
@@ -88,16 +86,67 @@ def train_model(
     return model, best_acc
 
 
-def replace_final_layer(model, num_classes):
-    num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, num_classes)
-    return model
+def imshow(inp, title=None):
+    """Imshow for Tensor."""
+    inp = inp.numpy().transpose((1, 2, 0))
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
+    plt.imshow(inp)
+    if title is not None:
+        plt.title(title)
+    plt.pause(0.001)  # pause a bit so that plots are updated
+
+
+def visualize_model(model, dataloaders, class_names, num_images=6):
+    import matplotlib.pyplot as plt
+
+    was_training = model.training
+    model.eval()
+    images_so_far = 0
+    fig = plt.figure()
+
+    with torch.no_grad():
+        for i, (inputs, labels) in enumerate(dataloaders["val"]):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+
+            for j in range(inputs.size()[0]):
+                images_so_far += 1
+                ax = plt.subplot(num_images // 2, 2, images_so_far)
+                ax.axis("off")
+                ax.set_title("predicted: {}".format(class_names[preds[j]]))
+                imshow(inputs.cpu().data[j])
+
+                if images_so_far == num_images:
+                    model.train(mode=was_training)
+                    return
+        model.train(mode=was_training)
+
+
+def show_examples(dataloaders, class_names):
+    import matplotlib.pyplot as plt
+
+    # Get a batch of training data
+    inputs, classes = next(iter(dataloaders["train"]))
+
+    # Make a grid from batch
+    out = torchvision.utils.make_grid(inputs)
+
+    imshow(out, title=[class_names[x] for x in classes])
+    input("Press Enter to continue...")
 
 
 def fine_tune_train(
     model_ft, device, num_epochs, dataloaders, dataset_sizes, num_classes, run
 ):
-    model_ft = replace_final_layer(model_ft, num_classes)
+    num_ftrs = model_ft.fc.in_features
+
+    model_ft.fc = nn.Linear(num_ftrs, num_classes)
 
     model_ft = model_ft.to(device)
 
@@ -128,7 +177,10 @@ def final_layer_train(
         param.requires_grad = False
 
     # Parameters of newly constructed modules have requires_grad=True by default
-    model_conv = replace_final_layer(model_conv, num_classes)
+    num_ftrs = model_conv.fc.in_features
+    model_conv.fc = nn.Linear(num_ftrs, num_classes)
+    # num_features = model_conv.classifier[1].in_features
+    # model_conv.classifier[1] = nn.Linear(num_features, num_classes)
 
     model_conv = model_conv.to(device)
 
@@ -137,6 +189,7 @@ def final_layer_train(
     # Observe that only parameters of final layer are being optimized as
     # opposed to before.
     optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
+    # optimizer_conv = optim.SGD(model_conv.classifier[1].parameters(), lr=0.001, momentum=0.9)
 
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
@@ -195,32 +248,13 @@ def load_datasets(data_dir):
     return dataloaders, dataset_sizes, class_names
 
 
-def save_model(model, model_dir):
+def save_model(modle, model_dir):
     path = os.path.join(model_dir, "model.pth")
     torch.save(model.cpu().state_dict(), path)
 
 
 def is_azure(args):
     return args.environment == "azure"
-
-def model_fn(model_dir):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = models.wide_resnet50_2()
-    model = replace_final_layer(model, 2)
-    with open(os.path.join(model_dir, 'model.pth'), 'rb') as f:
-        model.load_state_dict(torch.load(f))
-    return model.to(device)
-
-
-def input_fn(request_body, content_type):
-    if content_type != 'application/x-image':
-        raise Eexception(f'Unknown content type {content_type}')
-    print(request_body[:100])
-    image_array = np.array(Image.open(io.BytesIO(request_body)))
-    image = Image.fromarray(image_array.astype('uint8'), 'RGB')
-    transform = get_data_transforms()['val']
-    transformed_image = transform(image)
-    return torch.unsqueeze(transformed_image, 0)
 
 
 if __name__ == "__main__":
@@ -239,7 +273,7 @@ if __name__ == "__main__":
         const="eval",
         default="eval",
         nargs="?",
-        choices=["final_layer", "fine_tune", "eval"],
+        choices=["final_layer", "fine_tune", "show_examples", "eval"],
     )
     parser.add_argument("--environment", type=str, default="aws")
     args = parser.parse_args()
@@ -255,8 +289,11 @@ if __name__ == "__main__":
 
         run = Run.get_context()
 
-    pretrained_model = models.wide_resnet50_2(pretrained=True)
+    pretrained_model = models.resnet18(pretrained=True)
     dataloaders, dataset_sizes, class_names = load_datasets(args.data_dir)
+    [print(f"Dataset {x} has {dataset_sizes[x]} images.") for x in dataset_sizes]
+    [print(f"Class {x}.") for x in class_names]
+
     print(f"Action argument: {args.action}")
     if args.action == "eval":
         print(pretrained_model.eval())
@@ -288,6 +325,8 @@ if __name__ == "__main__":
         if is_azure(args):
             run.log("Best Accuracy", np.float(best_accuracy))
         save_model(model, args.model_dir)
+    elif args.action == "show_examples":
+        show_examples(dataloaders, class_names)
     else:
         print(f"Unknown argument {args.action}")
         exit(-1)
