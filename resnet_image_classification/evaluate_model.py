@@ -14,12 +14,10 @@ import pandas as pd
 import shutil
 
 
-def evaluate_model(model):
+def evaluate_model(model, dataset_folder):
     correct = 0
     total = 0
-    dataloaders, _, class_names = load_datasets(
-        # './finn_test')
-        '~/Documents/ml/datasets/salmon-trout/output', shuffle=False)
+    dataloaders, _, class_names = load_datasets(dataset_folder, shuffle=False)
 
     all_guesses = []
     incorrect_guesses = []
@@ -183,7 +181,9 @@ def plot_roc(actual_labels, all_guesses, save_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default='./models/model.pth')
+    parser.add_argument("--dataset", type=str, default='.')
     args = parser.parse_args()
 
     model = load_model(args.model)
-    evaluate_model(model)
+    dataset_folder = args.dataset
+    evaluate_model(model, dataset_folder)
