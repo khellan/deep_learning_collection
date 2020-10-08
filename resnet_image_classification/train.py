@@ -252,21 +252,23 @@ def save_model(modle, model_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--epochs", type=int, default=1)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--learning-rate", type=float, default=0.001)
     parser.add_argument("--gamma", type=float, default=0.1)
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--step-size", type=int, default=7)
-    parser.add_argument("--model-dir", type=str,
-                        default=os.environ["SM_MODEL_DIR"])
-    parser.add_argument(
-        "--data-dir", type=str, default=os.environ["SM_CHANNEL_TRAINING"]
-    )
+
+    default_model_dir = os.environ["SM_MODEL_DIR"] if "SM_MODEL_DIR" in os.environ else './models'
+    parser.add_argument("--model-dir", type=str, default=default_model_dir)
+
+    default_data_dir = os.environ["SM_CHANNEL_TRAINING"] if "SM_CHANNEL_TRAINING" in os.environ else '.'
+    parser.add_argument("--data-dir", type=str, default=default_data_dir)
+
     parser.add_argument(
         "--action",
         type=str,
         const="show_examples",
-        default="show_examples",
+        default="final_layer",
         nargs="?",
         choices=["final_layer", "fine_tune", "show_examples"],
     )
