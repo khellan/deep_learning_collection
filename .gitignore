@@ -1,3 +1,8 @@
 data/
 model/
 .vscode
+**/val/
+**/train/
+**/error_images/
+**/graphs/
+**/__pycache__/
