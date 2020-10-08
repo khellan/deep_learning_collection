@@ -1,15 +1,17 @@
 import argparse
 import torch
 import numpy as np
+import torchvision
 import matplotlib.pyplot as plt
-from datetime import datetime
 import os
-from train import get_data_transforms, load_datasets
-from test_model import load_model
+from train import visualize_model, get_data_transforms, load_datasets
 import json
 from sklearn import metrics
-import seaborn as sn
+from test_model import load_model
+from datetime import datetime
+# import seaborn as sn
 import pandas as pd
+import shutil
 
 
 def evaluate_model(model):
@@ -17,7 +19,7 @@ def evaluate_model(model):
     total = 0
     dataloaders, _, class_names = load_datasets(
         # './finn_test')
-        '.', shuffle=False)
+        '~/Documents/ml/datasets/salmon-trout/output', shuffle=False)
 
     all_guesses = []
     incorrect_guesses = []
@@ -41,8 +43,9 @@ def evaluate_model(model):
 
             for j in range(inputs.size()[0]):
                 if labels[j] != predicted[j]:
-                    filename, _ = dataloaders['val'].dataset.samples[counter]
-                    incorrect_guess = {'index': counter,
+                    absolute_index = i * 4 + j
+                    filename, _ = dataloaders['val'].dataset.samples[absolute_index]
+                    incorrect_guess = {'index': absolute_index,
                                        'guessed': class_names[predicted[j]], 'was': class_names[labels[j]], 'filename': filename}
                     incorrect_guesses += [incorrect_guess]
 
@@ -51,7 +54,8 @@ def evaluate_model(model):
         total, accuracy * 100))
     print('\nIncorrect guesses: \n', json.dumps(incorrect_guesses, indent=2))
 
-    os.system("rm -rf error_images && mkdir error_images")
+    shutil.rmtree('./error_images')
+    os.system("mkdir error_images")
     for incorrect_guess in incorrect_guesses:
         orig_path = incorrect_guess['filename']
         new_path = 'error_images/%s_%s' % (orig_path.split(
@@ -61,17 +65,18 @@ def evaluate_model(model):
     actual_labels = dataloaders['val'].dataset.targets
 
     os.system('mkdir graphs')
-    now = datetime.now()
-    dt_string = now.strftime("%Y-%m-%d_%H-%M-%S")
-    save_path = 'graphs/%s/' % dt_string
-    os.system('mkdir %s' % save_path)
+    save_path = 'graphs/'
+    # now = datetime.now()
+    # dt_string = now.strftime("%Y-%m-%d_%H-%M-%S")
+    # save_path = 'graphs/%s/' % dt_string
+    # os.system('mkdir %s' % save_path)
 
     confusion_matrix = generate_confusion_matrix(
-        actual_labels, incorrect_guesses, save_path)
+        actual_labels, incorrect_guesses)
     recall, precision, f1 = generate_stats(confusion_matrix)
 
     plot_confusion_matrix(confusion_matrix, class_names, save_path)
-    plot_stats(accuracy, recall, precision, f1)
+    plot_stats(accuracy, recall, precision, f1, save_path)
     plot_roc(actual_labels, all_guesses, save_path)
 
 
@@ -117,14 +122,14 @@ def plot_stats(accuracy, recall, precision, f1, save_path):
     x = np.arange(4)
     fig, ax = plt.subplots()
 
-    plt.bar(x, [accuracy, recall, precision, f1], color=['#003f5c',
-                                                         '#58508d',
-                                                         '#bc5090',
-                                                         '#ff6361',
-                                                         '#ffa600'])
+    plt.grid(zorder=0)
+    plt.bar(x, [accuracy, recall, precision, f1], zorder=3, color=['#003f5c',
+                                                                   '#58508d',
+                                                                   '#bc5090',
+                                                                   '#ff6361',
+                                                                   '#ffa600'])
     plt.ylim([0.9, 1.0])
     plt.xticks(x, ('Accuracy', 'Recall', 'Precision', 'F1 Score'))
-    plt.grid()
     # plt.show()
     plt.savefig('%s/stats.png' % save_path)
 
@@ -134,8 +139,17 @@ def plot_confusion_matrix(confusion_matrix, class_names, save_path):
         confusion_matrix['fn'], confusion_matrix['tn']]]
     df_cm = pd.DataFrame(confusion_array, index=[i for i in class_names],
                          columns=[i for i in class_names])
-    plt.figure(figsize=(10, 7))
-    sn.heatmap(df_cm, annot=True)
+    plt.figure(figsize=(6, 4))
+
+    # Importing seaborn in the beginning of the file was causing a strange bug
+    # where the loop crashed due to dataloaders['val'] changing size
+    # mid-iteration. How that has anything to do with seaborn I don't know.
+    import seaborn as sn
+    ax = sn.heatmap(df_cm, annot=True, fmt="d")
+    ax.xaxis.set_ticks_position("top")
+    ax.xaxis.set_label_position('top')
+    plt.xlabel("Actual")
+    plt.ylabel("Predicted")
     plt.savefig('%s/confusion.png' % save_path)
 
 
@@ -151,7 +165,7 @@ def plot_roc(actual_labels, all_guesses, save_path):
     roc_auc = metrics.auc(fpr, tpr)
     print('AUC score: %s' % roc_auc)
 
-    # plt.figure(figsize=(6,6))
+    plt.figure(figsize=(6, 6))
     plt.plot(fpr, tpr)  # roc_auc_score
 
     plt.plot([0, 1], [0, 1], 'k--')
