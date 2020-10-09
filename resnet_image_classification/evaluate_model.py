@@ -34,8 +34,9 @@ def evaluate_model(model, dataset_folder):
             labels = labels.to(device)
             outputs = model(inputs)
             _, predicted = torch.max(outputs.data, 1)
-            for o in outputs.data:
-                all_guesses += [max(list(o.numpy()))]
+            all_guesses += list(predicted.numpy())
+            # for o in outputs.data:
+            #     all_guesses += [max(list(o.numpy()))]
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
@@ -68,6 +69,10 @@ def evaluate_model(model, dataset_folder):
     # dt_string = now.strftime("%Y-%m-%d_%H-%M-%S")
     # save_path = 'graphs/%s/' % dt_string
     # os.system('mkdir %s' % save_path)
+
+    with open('guesses.json', 'w') as f:
+        f.write('{\n\t"actual_labels": %s,\n\t"predicted": %s\n}' %
+                (actual_labels, all_guesses))
 
     confusion_matrix = generate_confusion_matrix(
         actual_labels, incorrect_guesses)
