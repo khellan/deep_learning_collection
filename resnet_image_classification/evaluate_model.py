@@ -49,9 +49,9 @@ def evaluate_model(model, dataset_folder):
                     incorrect_guesses += [incorrect_guess]
 
     accuracy = correct / total
-    print('Accuracy of the network on the %s validation images: %s%%' % (
-        total, accuracy * 100))
     print('\nIncorrect guesses: \n', json.dumps(incorrect_guesses, indent=2))
+    print('Accuracy of the network on the %s validation images: %s%%' % (
+        total, accuracy))
 
     shutil.rmtree('./error_images')
     os.system("mkdir error_images")
@@ -126,12 +126,14 @@ def plot_stats(accuracy, recall, precision, f1, save_path):
     fig, ax = plt.subplots()
 
     plt.grid(zorder=0)
-    plt.bar(x, [accuracy, recall, precision, f1], zorder=3, color=['#003f5c',
-                                                                   '#58508d',
-                                                                   '#bc5090',
-                                                                   '#ff6361',
-                                                                   '#ffa600'])
-    plt.ylim([0.9, 1.0])
+    stats = [accuracy, recall, precision, f1]
+    plt.bar(x, stats, zorder=3, color=['#003f5c',
+                                       '#58508d',
+                                       '#bc5090',
+                                       '#ff6361',
+                                       '#ffa600'])
+    minLim = min(stats) - 0.05
+    plt.ylim([minLim, 1.0])
     plt.xticks(x, ('Accuracy', 'Recall', 'Precision', 'F1 Score'))
     # plt.show()
     plt.savefig('%s/stats.png' % save_path)

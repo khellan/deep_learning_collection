@@ -26,7 +26,7 @@ def test_single(model, test_input, class_names):
 
 def load_model(model_path):
     model = models.resnet18(pretrained=False, num_classes=2)
-    model.load_state_dict(torch.load('./models/model.pth'))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
     return model
 
