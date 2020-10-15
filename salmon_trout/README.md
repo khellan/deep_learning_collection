@@ -45,7 +45,7 @@ At this point you have two options for training.
 - You can train "directly" by opening and running the `pytorch_image_transfer_learning.ipynb` file.
 - Alternatively, you can run the project _containerized_ through Docker by opening and running the `build_and_train_docker.ipynb` file. This will automatically create a runnable Docker project for you and upload it to Amazon Elastic Container Registry (ECR). It will then run that image.
 
-In either case, you can modify the training hyperparameters, dataset folder, etc by editing your Jupyter Notebook file.
+In either case, you can modify the training hyperparameters, dataset folder, etc by editing your Jupyter Notebook file. Perhaps _most important_ to note is that the `train_instance_type` is set to `'local'` for several of the notebooks. This means the code will be run on hardware that is likely no better than your local machine. In order to get the benefit of cloud computing, change this to something like `ml.p3.2xlarge`. For a full list of available instance types, see [here](https://aws.amazon.com/sagemaker/pricing/).
 
 The resuling trained model will be located in the Sagemaker Notebook's S3 bucket.
 
