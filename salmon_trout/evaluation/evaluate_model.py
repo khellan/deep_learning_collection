@@ -1,5 +1,3 @@
-
-
 import shutil
 import pandas as pd
 from datetime import datetime
@@ -51,12 +49,14 @@ def evaluate_model(model, dataset_folder):
                     absolute_index = i * 4 + j
                     filename, _ = dataloaders['val'].dataset.samples[absolute_index]
                     incorrect_guess = {'index': absolute_index,
-                                       'guessed': class_names[predicted[j]], 'was': class_names[labels[j]], 'filename': filename}
+                                       'guessed': class_names[predicted[j]],
+                                       'was': class_names[labels[j]],
+                                       'filename': filename}
                     incorrect_guesses += [incorrect_guess]
 
     accuracy = correct / total
     print('\nIncorrect guesses: \n', json.dumps(incorrect_guesses, indent=2))
-    print('Accuracy of the network on the %s validation images: %s%%' % (
+    print('Accuracy of the network on the %s validation images: %s' % (
         total, accuracy))
 
     dirpath = 'error_images'
@@ -71,63 +71,32 @@ def evaluate_model(model, dataset_folder):
 
     actual_labels = dataloaders['val'].dataset.targets
 
-    save_path = './graphs'
-    if not (os.path.exists(save_path) and os.path.isdir(save_path)):
-        os.system('mkdir %s' % save_path)
+    # Uncomment this code (and comment out the following save_path = ...)
+    # to make a separate folder for the graphs produced by each evaluation run.
+
     # now = datetime.now()
     # dt_string = now.strftime("%Y-%m-%d_%H-%M-%S")
     # save_path = 'graphs/%s/' % dt_string
-    # os.system('mkdir %s' % save_path)
+    save_path = './graphs'
+    if not (os.path.exists(save_path) and os.path.isdir(save_path)):
+        os.system('mkdir %s' % save_path)
 
-    with open('guesses.json', 'w') as f:
-        f.write('{\n\t"actual_labels": %s,\n\t"predicted": %s\n}' %
-                (actual_labels, all_guesses))
+    # Uncomment this to get a json file containing the raw data of
+    # all true values and all guesses.
 
-    confusion_matrix = generate_confusion_matrix(
-        actual_labels, incorrect_guesses)
-    recall, precision, f1 = generate_stats(confusion_matrix)
+    # with open('guesses.json', 'w') as f:
+    #     f.write('{\n\t"actual_labels": %s,\n\t"predicted": %s\n}' %
+    #             (actual_labels, all_guesses))
 
-    plot_confusion_matrix(confusion_matrix, class_names, save_path)
+    y = np.array(actual_labels)
+    y_pred = np.array(all_guesses)
+
+    precision, recall, f1, _ = metrics.precision_recall_fscore_support(
+        y, y_pred, pos_label=0, average='binary')
+
+    plot_confusion_matrix(y, y_pred, class_names, save_path)
     plot_stats(accuracy, recall, precision, f1, save_path)
-    plot_roc(actual_labels, all_guesses, save_path)
-
-
-def generate_confusion_matrix(actual_labels, incorrect_guesses):
-    # We define 'true positive' as guessed salmon correctly
-    confusion_matrix = {'tp': 0, 'fp': 0, 'fn': 0, 'tn': 0}
-
-    total_salmon_pics = len([x for x in actual_labels if x == 0])
-    total_trout_pics = len(actual_labels) - total_salmon_pics
-    assert total_trout_pics == len([x for x in actual_labels if x == 1])
-
-    was_salmon_guessed_trout = len(
-        [guess for guess in incorrect_guesses if guess['guessed'] == 'trout'])
-    was_trout_guessed_salmon = len(
-        incorrect_guesses) - was_salmon_guessed_trout
-    # was_trout_guessed_salmon = len(
-    #     [guess for guess in incorrect_guesses if guess['guessed'] == 'salmon'])
-
-    confusion_matrix['tp'] = total_salmon_pics - was_salmon_guessed_trout
-    confusion_matrix['fp'] = was_trout_guessed_salmon
-    confusion_matrix['fn'] = was_salmon_guessed_trout
-    confusion_matrix['tn'] = total_trout_pics - was_trout_guessed_salmon
-
-    return confusion_matrix
-
-
-def generate_stats(confusion_matrix):
-    recall = confusion_matrix['tp'] / \
-        (confusion_matrix['tp'] + confusion_matrix['fn'])
-    precision = confusion_matrix['tp'] / \
-        (confusion_matrix['tp'] + confusion_matrix['fp'])
-    false_pos_rate = confusion_matrix['fp'] / \
-        (confusion_matrix['fp'] + confusion_matrix['tn'])
-    f1 = 2 * (recall * precision) / (recall + precision)
-
-    print('Recall: %s' % recall)
-    print('Precision: %s' % precision)
-    print('F1 score: %s' % f1)
-    return recall, precision, f1
+    plot_roc(y, y_pred, save_path)
 
 
 def plot_stats(accuracy, recall, precision, f1, save_path):
@@ -136,11 +105,12 @@ def plot_stats(accuracy, recall, precision, f1, save_path):
 
     plt.grid(zorder=0)
     stats = [accuracy, recall, precision, f1]
-    plt.bar(x, stats, zorder=3, color=['#003f5c',
-                                       '#58508d',
-                                       '#bc5090',
-                                       '#ff6361',
-                                       '#ffa600'])
+    colors = ['#003f5c',
+              '#58508d',
+              '#bc5090',
+              '#ff6361',
+              '#ffa600']
+    plt.bar(x, stats, zorder=3, color=colors)
     minLim = min(stats) - 0.05
     plt.ylim([minLim, 1.0])
     plt.xticks(x, ('Accuracy', 'Recall', 'Precision', 'F1 Score'))
@@ -148,10 +118,13 @@ def plot_stats(accuracy, recall, precision, f1, save_path):
     plt.savefig('%s/stats.png' % save_path)
 
 
-def plot_confusion_matrix(confusion_matrix, class_names, save_path):
-    confusion_array = [[confusion_matrix['tp'], confusion_matrix['fp']], [
-        confusion_matrix['fn'], confusion_matrix['tn']]]
-    df_cm = pd.DataFrame(confusion_array, index=[i for i in class_names],
+def plot_confusion_matrix(y, y_pred, class_names, save_path):
+    confusion_matrix = metrics.confusion_matrix(y, y_pred)
+    tn, fp, fn, tp = confusion_matrix.ravel()
+    confusion_matrix_with_actual_top = [[tp, fp], [fn, tn]]
+
+    df_cm = pd.DataFrame(confusion_matrix_with_actual_top,
+                         index=[i for i in class_names],
                          columns=[i for i in class_names])
     plt.figure(figsize=(6, 4))
 
@@ -167,13 +140,10 @@ def plot_confusion_matrix(confusion_matrix, class_names, save_path):
     plt.savefig('%s/confusion.png' % save_path)
 
 
-def plot_roc(actual_labels, all_guesses, save_path):
+def plot_roc(y, y_pred, save_path):
     """
     compute ROC curve and ROC area for each class in each fold
     """
-
-    y = np.array(actual_labels)
-    y_pred = np.array(all_guesses)
 
     fpr, tpr, _ = metrics.roc_curve(y, y_pred)
     roc_auc = metrics.auc(fpr, tpr)
@@ -196,7 +166,8 @@ def plot_roc(actual_labels, all_guesses, save_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default='../models/model.pth')
+    # parser.add_argument("--model", type=str, default='../models/model.pth')
+    parser.add_argument("--model", type=str, default='./model.pth')
     parser.add_argument("--dataset", type=str, default='..')
     args = parser.parse_args()
 

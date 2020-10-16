@@ -135,6 +135,5 @@ if __name__ == "__main__":
         from train import load_datasets
 
         dataloaders, _, class_names = load_datasets(args.dataset)
-        # '~/Documents/ml/datasets/salmon-trout/output')
         visualize_model(model, dataloaders, class_names)
         time.sleep(100)

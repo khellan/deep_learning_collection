@@ -229,7 +229,7 @@ def input_fn(request_body, content_type):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--learning-rate", type=float, default=0.001)
     parser.add_argument("--gamma", type=float, default=0.1)
     parser.add_argument("--momentum", type=float, default=0.9)
