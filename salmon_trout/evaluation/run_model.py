@@ -37,8 +37,11 @@ def download_image(url):
     local_path = './test_images/%s' % url.split("/")[-1]
     # local_path = './test_images/img.jpg'
     if not os.path.isfile(local_path):
-        resp = requests.get(url, headers={
-                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'})
+        # You might need the commented-out http header (updated to fit your machine)
+        # to successfully download images from the given url.
+        resp = requests.get(url,
+                            # headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'}
+                            )
         if not resp.ok:
             resp.raise_for_status()
         img_data = resp.content
