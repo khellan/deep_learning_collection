@@ -5,6 +5,9 @@ verify_ssl = true
 
 [dev-packages]
 jupyterlab = "*"
+bandit = "*"	
+scikit-learn = "*"
+azureml-sdk = {extras = ["automl", "notebooks"],version = "*"}	
 
 [packages]
 numpy = "*"
@@ -13,6 +16,7 @@ torchvision = "*"
 matplotlib = "*"
 nbdime = "*"
 sklearn = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"
