@@ -65,13 +65,9 @@ def train_model(
 
             print("{} Loss: {:.4f} Acc: {:.4f}".format(
                 phase, epoch_loss, epoch_acc))
-<<<<<<< HEAD:resnet_image_classification/train.py
-
-=======
             if run:
                 run.log(f"{phase} Accuracy", np.float(epoch_acc))
                 run.log(f"{phase} Loss", np.float(epoch_loss))
->>>>>>> cb88f77122ed21d02a7aa9d3661dcc2ef2f5ed5f:salmon_trout/train.py
             # deep copy the model
             if phase == "val" and epoch_acc > best_acc:
                 best_acc = epoch_acc
@@ -103,17 +99,6 @@ def imshow(inp, title=None):
     if title is not None:
         plt.title(title)
     plt.pause(0.001)  # pause a bit so that plots are updated
-
-<<<<<<< HEAD:resnet_image_classification/train.py
-
-def visualize_model(model, dataloaders, class_names, num_images=6):
-    was_training = model.training
-    model.eval()
-    images_so_far = 0
-    fig = plt.figure()
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-=======
->>>>>>> cb88f77122ed21d02a7aa9d3661dcc2ef2f5ed5f:salmon_trout/train.py
 
     with torch.no_grad():
         for i, (inputs, labels) in enumerate(dataloaders["val"]):
@@ -164,11 +149,7 @@ def fine_tune_train(device, num_epochs, dataloaders, dataset_sizes, num_classes)
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(
         optimizer_ft, step_size=7, gamma=0.1)
-<<<<<<< HEAD:resnet_image_classification/train.py
-    model_ft = train_model(
-=======
     model_ft, best_accuracy = train_model(
->>>>>>> cb88f77122ed21d02a7aa9d3661dcc2ef2f5ed5f:salmon_trout/train.py
         model_ft,
         dataloaders,
         dataset_sizes,
@@ -270,30 +251,14 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", type=float, default=0.1)
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--step-size", type=int, default=7)
-<<<<<<< HEAD:resnet_image_classification/train.py
-
-    default_model_dir = os.environ["SM_MODEL_DIR"] if "SM_MODEL_DIR" in os.environ else './models'
-    parser.add_argument("--model-dir", type=str, default=default_model_dir)
-
-    default_data_dir = os.environ["SM_CHANNEL_TRAINING"] if "SM_CHANNEL_TRAINING" in os.environ else '.'
-    parser.add_argument("--data-dir", type=str, default=default_data_dir)
-
-    parser.add_argument(
-        "--action",
-        type=str,
-        const="show_examples",
-=======
     parser.add_argument(
         "--action",
         type=str,
         const="final_layer",
->>>>>>> cb88f77122ed21d02a7aa9d3661dcc2ef2f5ed5f:salmon_trout/train.py
         default="final_layer",
         nargs="?",
         choices=["final_layer", "fine_tune", "show_examples"],
     )
-<<<<<<< HEAD:resnet_image_classification/train.py
-=======
     parser.add_argument("--environment", type=str, default="aws")
 
     default_model_dir = os.environ["SM_MODEL_DIR"] if "SM_MODEL_DIR" in os.environ else './models'
@@ -307,17 +272,13 @@ if __name__ == "__main__":
     run = None  # Used in Azure only
     if args.environment == 'azure':
         from azureml.core import Run
->>>>>>> cb88f77122ed21d02a7aa9d3661dcc2ef2f5ed5f:salmon_trout/train.py
 
     args = parser.parse_args()
     dataloaders, dataset_sizes, class_names = load_datasets(args.data_dir)
-<<<<<<< HEAD:resnet_image_classification/train.py
-=======
     [print(f"Dataset {x} has {dataset_sizes[x]} images.")
      for x in dataset_sizes]
     [print(f"Class {x}.") for x in class_names]
 
->>>>>>> cb88f77122ed21d02a7aa9d3661dcc2ef2f5ed5f:salmon_trout/train.py
     print(f"Action argument: {args.action}")
     if args.action == "fine_tune":
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

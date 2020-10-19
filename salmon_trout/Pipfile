@@ -5,12 +5,9 @@ verify_ssl = true
 
 [dev-packages]
 jupyterlab = "*"
-<<<<<<< HEAD:resnet_image_classification/Pipfile
-=======
 bandit = "*"	
 scikit-learn = "*"
 azureml-sdk = {extras = ["automl", "notebooks"],version = "*"}	
->>>>>>> cb88f77122ed21d02a7aa9d3661dcc2ef2f5ed5f:salmon_trout/Pipfile
 
 [packages]
 numpy = "*"
@@ -19,10 +16,7 @@ torchvision = "*"
 matplotlib = "*"
 nbdime = "*"
 sklearn = "*"
-<<<<<<< HEAD:resnet_image_classification/Pipfile
-=======
 seaborn = "*"
->>>>>>> cb88f77122ed21d02a7aa9d3661dcc2ef2f5ed5f:salmon_trout/Pipfile
 
 [requires]
 python_version = "3.7"
