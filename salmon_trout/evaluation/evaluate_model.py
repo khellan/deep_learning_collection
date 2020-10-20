@@ -28,11 +28,11 @@ def evaluate_model(model, dataset_folder):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
-        print('Beginning evauluation using %s validation samples.' %
-              len(dataloaders["val"].dataset.targets))
+        print(
+            f'Beginning evauluation using {len(dataloaders["val"].dataset.targets)} validation samples.')
         for i, (inputs, labels) in enumerate(dataloaders["val"]):
             if i % 10 == 0:
-                print('Sample %s...' % (i * 4))
+                print(f'Sample {i * 4}...')
             inputs = inputs.to(device)
 
             labels = labels.to(device)
@@ -56,18 +56,17 @@ def evaluate_model(model, dataset_folder):
 
     accuracy = correct / total
     print('\nIncorrect guesses: \n', json.dumps(incorrect_guesses, indent=2))
-    print('Accuracy of the network on the %s validation images: %s' % (
-        total, accuracy))
+    print(
+        f'Accuracy of the network on the {total} validation images: {accuracy}')
 
     dirpath = 'error_images'
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
-        shutil.rmtree('./%s' % dirpath)
-    os.system("mkdir %s" % dirpath)
+        shutil.rmtree(f'./{dirpath}')
+    os.system(f"mkdir {dirpath}")
     for incorrect_guess in incorrect_guesses:
         orig_path = incorrect_guess['filename']
-        new_path = 'error_images/%s_%s' % (orig_path.split(
-            '/')[-2], orig_path.split('/')[-1])
-        os.system('cp %s %s' % (orig_path, new_path))
+        new_path = f'error_images/{orig_path.split("/")[-2]}_{orig_path.split("/")[-1]}'
+        os.system(f'cp {orig_path} {new_path}')
 
     actual_labels = dataloaders['val'].dataset.targets
 
@@ -79,7 +78,7 @@ def evaluate_model(model, dataset_folder):
     # save_path = 'graphs/%s/' % dt_string
     save_path = './graphs'
     if not (os.path.exists(save_path) and os.path.isdir(save_path)):
-        os.system('mkdir %s' % save_path)
+        os.system(f'mkdir {save_path}')
 
     # Uncomment this to get a json file containing the raw data of
     # all true values and all guesses.
@@ -115,7 +114,7 @@ def plot_stats(accuracy, recall, precision, f1, save_path):
     plt.ylim([minLim, 1.0])
     plt.xticks(x, ('Accuracy', 'Recall', 'Precision', 'F1 Score'))
     # plt.show()
-    plt.savefig('%s/stats.png' % save_path)
+    plt.savefig(f'{save_path}/stats.png')
 
 
 def plot_confusion_matrix(y, y_pred, class_names, save_path):
@@ -137,7 +136,7 @@ def plot_confusion_matrix(y, y_pred, class_names, save_path):
     ax.xaxis.set_label_position('top')
     plt.xlabel("Actual")
     plt.ylabel("Predicted")
-    plt.savefig('%s/confusion.png' % save_path)
+    plt.savefig(f'{save_path}/confusion.png')
 
 
 def plot_roc(y, y_pred, save_path):
@@ -147,7 +146,7 @@ def plot_roc(y, y_pred, save_path):
 
     fpr, tpr, _ = metrics.roc_curve(y, y_pred)
     roc_auc = metrics.auc(fpr, tpr)
-    print('AUC score: %s' % roc_auc)
+    print(f'AUC score: {roc_auc}')
 
     plt.figure(figsize=(6, 6))
     plt.plot(fpr, tpr)  # roc_auc_score
@@ -161,7 +160,7 @@ def plot_roc(y, y_pred, save_path):
     plt.title('ROC AUC')
     plt.legend(loc="lower right")
     # plt.tight_layout()
-    plt.savefig('%s/roc.png' % save_path)
+    plt.savefig(f'{save_path}/roc.png')
 
 
 if __name__ == "__main__":

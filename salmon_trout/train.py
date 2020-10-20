@@ -21,7 +21,7 @@ def train_model(
     best_acc = 0.0
 
     for epoch in range(num_epochs):
-        print("Epoch {}/{}".format(epoch, num_epochs - 1))
+        print(f"Epoch {epoch}/{num_epochs - 1}")
         print("-" * 10)
 
         # Each epoch has a training and validation phase
@@ -63,8 +63,7 @@ def train_model(
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
-            print("{} Loss: {:.4f} Acc: {:.4f}".format(
-                phase, epoch_loss, epoch_acc))
+            print(f"{phase} Loss: {epoch_loss} Acc: {epoch_acc}")
             if run:
                 run.log(f"{phase} Accuracy", np.float(epoch_acc))
                 run.log(f"{phase} Loss", np.float(epoch_loss))
@@ -76,12 +75,8 @@ def train_model(
         print()
 
     time_elapsed = time.time() - since
-    print(
-        "Training complete in {:.0f}m {:.0f}s".format(
-            time_elapsed // 60, time_elapsed % 60
-        )
-    )
-    print("Best val Acc: {:4f}".format(best_acc))
+    print(f"Training complete in {time_elapsed // 60}m {time_elapsed % 60}s")
+    print(f"Best val Acc: {best_acc}")
 
     # load best model weights
     model.load_state_dict(best_model_wts)
