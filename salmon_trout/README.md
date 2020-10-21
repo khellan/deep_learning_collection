@@ -63,4 +63,5 @@ The `evaluation` folder includes files for determinging statistics, generatic gr
 
 ## Interpretability
 
-TODO
+The `interpetation` folder contains files for explaining and analyzing the model. `shap_explainer.py` uses the [Shap](https://github.com/slundberg/shap) library. Make sure to provide dataset/images and update the paths accordingly in order to run.
+
