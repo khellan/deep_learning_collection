@@ -18,6 +18,7 @@ nbdime = "*"
 sklearn = "*"
 seaborn = "*"
 shap = "*"
+alibi = "*"
 
 [requires]
 python_version = "3.7"
