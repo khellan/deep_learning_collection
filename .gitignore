@@ -1,4 +1,3 @@
-data/
 model/
 .vscode
 **/val/
@@ -6,3 +5,4 @@ model/
 **/error_images/
 **/graphs/
 **/__pycache__/
+.DS_Store
