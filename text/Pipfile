@@ -10,6 +10,7 @@ xgboost = "*"
 spacy = "*"
 pandas = "*"
 scikit-learn = "*"
+pyconll = "*"
 
 [requires]
 python_version = "3.8"
