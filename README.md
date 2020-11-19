@@ -12,6 +12,8 @@ Various text classification examples using the NoReC dataset:
 * Logistic Regression
 * XGBoost
 
+ More information is available in [the text project](text/).
+
 ## Autoencoder
 
 Various experiments using and autoencoder to re-identify people in the Market1501 dataset.
