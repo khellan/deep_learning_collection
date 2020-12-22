@@ -11,3 +11,7 @@ Image Classification using RESNET Final Layer Training. Attempts to differentiat
 Various text classification examples using the NoReC dataset:
 * Logistic Regression
 * XGBoost
+
+## Autoencoder
+
+Various experiments using and autoencoder to re-identify people in the Market1501 dataset.
