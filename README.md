@@ -11,6 +11,9 @@ Image Classification using RESNET Final Layer Training. Attempts to differentiat
 Various text classification examples using the NoReC dataset:
 * Logistic Regression
 * XGBoost
+* SpaCy
+
+ More information is available in [the text project](text/).
 
 ## Autoencoder
 
